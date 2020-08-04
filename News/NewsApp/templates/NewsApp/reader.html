@@ -1,0 +1,29 @@
+{% extends 'NewsApp/base.html' %}
+
+{% block content %}
+
+<form action="" method="">
+    {% csrf_token %}
+    <input type="text" name="url" placeholder="RSS feed URL">
+    <button type="submit">Go</button>
+    <button>Save to my favourites</button>
+</form>
+{% if feed %}
+<br>
+<h2>{{feed.feed.title}}</h2>
+<br>
+{% if feed.items %}
+{% for item in feed.items %}
+<div>
+    <p>
+        {{ item.published }}
+        <a href="{{ item.link }}" target="_blank">{{ item.title }}</a>
+        {{ item.author }}
+    </p>
+</div>
+{% endfor %}
+{% else %}
+<p>Enter your favourite RSS</p>
+{% endif %}
+{% endif %}
+{% endblock %}

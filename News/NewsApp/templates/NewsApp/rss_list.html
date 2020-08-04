@@ -1,0 +1,26 @@
+{% extends 'NewsApp/base.html' %}
+
+{% block content %}
+
+
+    <div class="container-fluid" >
+        <div class="row">
+            {% for x in data %}
+            <div class="card" style="width: 20rem; margin: 0.5rem; padding: 0.5rem" >
+                <img src="{{x.img}}" class="card-img-top">
+                <div class="card-body">
+                    <h5 class="card-title">{{x.title}}</h5>
+                    <p class="card-text">{{x.description|truncatechars:100}}</p>
+
+                    <form action="." method="POST">{% csrf_token %}
+                        <input type="hidden" name="src" value="{{x.src}}">
+                        <input type="submit"  value="Go to rss"/>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+
+{% endblock %}
