@@ -20,5 +20,6 @@ from NewsApp import views
 urlpatterns = [
     path('', views.index, name="home"),
     path('NewsApp/', include('NewsApp.urls')),
+    path('twitter/', include('twitter.urls')),
     path('admin/', admin.site.urls),
 ]
