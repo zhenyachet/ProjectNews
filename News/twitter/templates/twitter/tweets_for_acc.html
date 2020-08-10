@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Personal tweets</title>
+</head>
+<body>
+<form action="" method="">
+    <select name="type_of_searching">
+        <option value="timeline">Search timeline for twitter user</option>
+        <option value="friendlist">Search friendlist for twitter user</option>
+        <option value="twitter_user">Search twitteruser for his name</option>
+        <option value="last_popular">Search last popular tweets for hashtags</option>
+    </select>
+    <input type="text" name="tag_for_searching" placeholder="Input twitter name or id">
+    <button>Ok</button>
+
+</form>
+
+    {% for item in timelines_from_req %}
+    <p>
+        <br>
+        {{ item.text }}
+        <br>
+    </p>
+
+    {% endfor %}
+
+
+    {% for item in friendlist_from_req %}
+    <p>
+        <br>
+        {{ item.name }}
+        <br>
+        {{ item.description }}
+        <br>
+    </p>
+
+    {% endfor %}
+</body>
+</html>
