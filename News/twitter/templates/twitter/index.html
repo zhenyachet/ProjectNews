@@ -5,6 +5,26 @@
     <title>Title</title>
 </head>
 <body>
-<h1>Hi from twitter</h1>
+<form action="" method="">
+    <input type="text" name="tag_for_searching" placeholder="Searching the twitter account">
+    <button type="submit">Go</button>
+
+
+</form>
+<a href="/twitter/actions/">Go to searching with parameters</a>
+    {% for result in results %}
+
+    <p>
+        {{ result.screen_name }}
+        <br>
+        {{ result.description}}
+        <br>
+    <form action="/twitter/actions/" method="POST">{% csrf_token %}
+    <input type="hidden" name="personal_id" value="{{result.id}}">
+    <input type="submit"  value="Go to tweets"/>
+    </form>
+    </p>
+
+    {% endfor %}
 </body>
 </html>
