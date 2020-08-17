@@ -37,5 +37,30 @@
     </p>
 
     {% endfor %}
+
+    {% for item in list_twitter_users %}
+    <p>
+        <br>
+<h2>Real name: </h2>{{ item.name }}
+<h2>Name in twitter: </h2>{{ item.screen_name }}
+        <br>
+<h2>Description of account: </h2>{{ item.description }}
+        <br>
+    </p>
+
+    {% endfor %}
+
+    {% for item in list_of_popular %}
+
+    <br>
+<h2>Real name: {{item.user.name}} </h2>
+<h2>Name in twitter: {{item.user.screen_name}}</h2>
+    <br>
+<h2>Tweet text: </h2>{{ item.text }}
+    <br>
+
+
+    {% endfor %}
+
 </body>
 </html>

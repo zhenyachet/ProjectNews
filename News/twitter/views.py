@@ -3,6 +3,7 @@ from tweepy import OAuthHandler
 from tweepy import API
 from tweepy import Cursor
 
+from .models import Account, Twit
 from . import tweeter_credentials
 
 
@@ -46,6 +47,10 @@ class TwitterClient():
             list_of_users.append(tweet)
         return list_of_users
 
+    def get_user(self):
+        user_info = self.twitter_client.get_user(id=self.twitter_user)
+        return user_info
+
 
 #### Twitter Authenticater ####
 class TwitterAuthenticator():
@@ -77,8 +82,8 @@ def person_actions(request):
         hash_for_searching = request.GET["tag_for_searching"]
         timelines_from_req = []
         friendlist_from_req = []
-
-
+        list_twitter_users = []
+        list_of_popular = []
 
         if request.GET["type_of_searching"] == 'timeline':
             #Get real twitter user from hashtag
@@ -93,15 +98,71 @@ def person_actions(request):
         elif request.GET["type_of_searching"] == 'friendlist':
             # Get real twitter user from hashtag
             twitter_client = TwitterClient(hash_for_searching)
-            object_for_searching = twitter_client.search_users(hash_for_searching, 1)
+            object_for_searching = twitter_client.search_users(hash_for_searching, 10)
             if object_for_searching:
                 screen_name = object_for_searching[0].screen_name
                 #Get friendslist if real user was found
                 twitter_client = TwitterClient(screen_name)
                 friendlist_from_req = twitter_client.get_friend_list(1)
-                print(friendlist_from_req)
 
-        return render(request, 'twitter/tweets_for_acc.html', {'timelines_from_req': timelines_from_req, 'friendlist_from_req': friendlist_from_req})
+
+        elif request.GET["type_of_searching"] == 'twitter_user':
+            # Get the list of twitter_users for the hashtag
+            twitter_client = TwitterClient(hash_for_searching)
+            object_for_searching = twitter_client.search_users(hash_for_searching, 5)
+            list_twitter_users = object_for_searching
+
+        else:
+            # Get the top 20 popular tweets
+            twitter_client = TwitterClient(hash_for_searching)
+            object_for_searching = twitter_client.get_last_popular_tweets(hash_for_searching, 20)
+            list_of_popular = object_for_searching
+
+        return render(request, 'twitter/tweets_for_acc.html', {
+            'timelines_from_req': timelines_from_req,
+            'friendlist_from_req': friendlist_from_req,
+            'list_twitter_users': list_twitter_users,
+            'list_of_popular': list_of_popular
+        })
 
 
     return render(request, 'twitter/tweets_for_acc.html', {})
+
+
+def update_twits(request):
+    all_names = Account.objects.values('account')
+
+    #update twits in database
+    for name in all_names:
+        account_for_searching = name['account']
+        all_names = Account.objects.get(account=account_for_searching)
+
+        twitter_client = TwitterClient(account_for_searching)
+
+        timelines_client = twitter_client.get_user_timeline_tweets(3)
+        account_info = twitter_client.get_user()
+        hash_tag_list = []
+        hashtag_for_user = account_info.status.entities['hashtags']
+        if hashtag_for_user:
+            hash_tag_list.append(hashtag_for_user)
+
+        #add last 3 twits(hashtags, mentions, date, account)
+        for timeline in timelines_client:
+            list_of_mentions = timeline.entities['user_mentions']
+
+            for mention in list_of_mentions:
+                if mention:
+                    hash_tag_list.append(mention['screen_name'])
+
+            description = timeline.text
+            date_of_public = timeline.created_at
+            hash_tags = hash_tag_list
+
+            if request.method == "POST":
+                twit_instance = Twit.objects.create(
+                     author=all_names,
+                     release_date=date_of_public,
+                     text=description,
+                     hash_tags=hash_tags
+                 )
+    return render(request, 'twitter/Searching_page.html', {})
