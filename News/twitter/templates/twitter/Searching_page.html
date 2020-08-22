@@ -9,5 +9,18 @@
 </form>
 <body>
 <h1>Update twits in database</h1>
+{% for account in twitter_accounts %}
+    <ul>
+        <li>{{account.id}}) {{account.account}}</li>
+    </ul>
+{% endfor %}
+<br>
+{% for twit in twitt_messages %}
+    <ul>
+        <li>{{twit.author_id}}) {{twit.text}} {{twit.hash_tags}}</li>
+    </ul>
+{% endfor %}
+
+
 </body>
 </html>

@@ -46,7 +46,18 @@
         <br>
 <h2>Description of account: </h2>{{ item.description }}
         <br>
+<h2>Id of twitter account: </h2>{{ item.id_str }}
+
+        <br>
     </p>
+<form method="post">{% csrf_token %}
+
+
+    <input type="hidden" name="account_name" value="{{ item.screen_name }}">
+    <input type="hidden" name="account_id" value="{{ item.id_str }}">
+    <input type="submit" value="Add to favourites">
+</form>
+
 
     {% endfor %}
 

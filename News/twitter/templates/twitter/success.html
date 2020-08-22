@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Successful adding</title>
+</head>
+<body>
+{% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+{% endif %}
+
+<p><a href="/twitter/" class="button">Searching accounts</a></p>
+<p><a href="/twitter/update" class="button">My list of accounts</a></p>
+</body>
+</html>

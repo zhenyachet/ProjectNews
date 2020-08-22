@@ -28,36 +28,36 @@ PrimaryImg = page_soup.findAll("img", {"class":"media__image media__image--respo
 
 
 # Getting news from BBC sport
+#
+# my_url = 'https://www.bbc.com/sport'
+# uClient = uReq(my_url)
+# page_html = uClient.read()
+# uClient.close()
+# page_soup = Soup(page_html, "html.parser")
+# HeadTitles = page_soup.findAll("div", {"class": "gs-c-promo gs-t-sport gs-c-promo--stacked@m gs-c-promo--inline gs-o-faux-block-link gs-u-pb gs-u-pb++@m gs-c-promo--flex"})
+#
+# BBCTitles = []
+# i = 0
+# while i < 10:
+#     BBCTitles.append(HeadTitles[i]["data-bbc-title"])
+#     BBCTitles.append(HeadTitles[i]["data-bbc-result"])
+#     i = i + 1
 
-my_url = 'https://www.bbc.com/sport'
-uClient = uReq(my_url)
-page_html = uClient.read()
-uClient.close()
-page_soup = Soup(page_html, "html.parser")
-HeadTitles = page_soup.findAll("div", {"class": "gs-c-promo gs-t-sport gs-c-promo--stacked@m gs-c-promo--inline gs-o-faux-block-link gs-u-pb gs-u-pb++@m gs-c-promo--flex"})
-
-BBCTitles = []
-i = 0
-while i < 10:
-    BBCTitles.append(HeadTitles[i]["data-bbc-title"])
-    BBCTitles.append(HeadTitles[i]["data-bbc-result"])
-    i = i + 1
-
-    def index(req):
-        return render(req, 'NewsApp/index.html', {'PrimaryImg': PrimaryImg, 'CNNTitles': CNNTitles, 'BBCTitles': BBCTitles})
+def index(req):
+    return render(req, 'NewsApp/index.html', {'PrimaryImg': PrimaryImg, 'CNNTitles': CNNTitles})
 
 
-    def rss(request):
-        if request.GET.get("url"):
-           url = request.GET["url"]
-           feed = feedparser.parse(url)
+def rss(request):
+    if request.GET.get("url"):
+        url = request.GET["url"]
+        feed = feedparser.parse(url)
 
-        else:
-           feed = None
+    else:
+        feed = None
 
-        return render(request, 'NewsApp/reader.html', {
-           'feed': feed
-        })
+    return render(request, 'NewsApp/reader.html', {
+        'feed': feed
+    })
 
 
 
