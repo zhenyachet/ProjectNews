@@ -1,5 +1,5 @@
 from django.db import models
-from taggit.managers import TaggableManager
+
 
 
 class Account(models.Model):
@@ -10,10 +10,10 @@ class Account(models.Model):
 
 
 class Twit(models.Model):
-    author = models.ForeignKey(Account, on_delete=models.CASCADE, null=False)
+    twitter_id = models.CharField(max_length=20, unique=True, primary_key=True)
+    twitter_user = models.CharField(max_length=200)
     text = models.TextField(null=False, default='Some text of twitter')
     release_date = models.DateField()
     hash_tags = models.TextField(null=True)
 
-    tags = TaggableManager()
 

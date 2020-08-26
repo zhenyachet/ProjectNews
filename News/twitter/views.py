@@ -1,14 +1,17 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.contrib import messages
 from tweepy import OAuthHandler
 from tweepy import API
 from tweepy import Cursor
-from django.http import HttpResponseRedirect
-
+from tweepy import TweepError
+from django.http import HttpResponseRedirect, HttpResponse
 from .models import Account, Twit
 from . import tweeter_credentials
-
-
+from .forms import UpdateForm, InputPinForm
+from tweepy import StreamListener
+from tweepy import Stream
+import time
+import webbrowser
 
 
 #### Twitter Client ####
@@ -62,8 +65,103 @@ class TwitterAuthenticator():
         auth.set_access_token(tweeter_credentials.ACCESS_TOKEN, tweeter_credentials.ACCESS_TOKEN_SECRET)
         return auth
 
-hash_tag_list = ["donald trump", "hillary clinton"]
-fetched_tweets_filename = "tweets.json"
+# hash_tag_list = ["donald trump", "hillary clinton"]
+# fetched_tweets_filename = "tweets.json"
+
+
+# # # # TWITTER STREAMER # # # #
+class TwitterStreamer():
+    """
+    Class for streaming and processing live tweets.
+    """
+    def __init__(self):
+        self.twitter_autenticator = TwitterAuthenticator()
+
+    def stream_tweets(self, fetched_tweets_filename, hash_tag_list, time_limit):
+        # This handles Twitter authetification and the connection to Twitter Streaming API
+        listener = TwitterListener(fetched_tweets_filename, time_limit=time_limit)
+        auth = self.twitter_autenticator.authenticate_twitter_app()
+        stream = Stream(auth=auth, listener=listener)
+
+        # This line filter Twitter Streams to capture data by the keywords:
+        stream.filter(follow=hash_tag_list)
+
+
+## Add list of hashtags and mentions from tweet dictionary
+def hashtag_to_list(hashtags, mentions):
+    list_of_hashtags = []
+    for hashtag in hashtags:
+        list_of_hashtags.append(hashtag['text'])
+    for mention in mentions:
+        list_of_hashtags.append(mention['screen_name'])
+    return list_of_hashtags
+
+
+# # # # TWITTER STREAM LISTENER # # # #
+class TwitterListener(StreamListener):
+    """
+    This is a basic listener that just prints received tweets to stdout.
+    """
+
+    def __init__(self, fetched_tweets_filename, time_limit):
+        self.start_time = time.time()
+        self.limit = time_limit
+        super(TwitterListener, self).__init__()
+        self.fetched_tweets_filename = fetched_tweets_filename
+
+    # def on_data(self, data):
+    #     try:
+    #         print(data)
+    #         with open(self.fetched_tweets_filename, 'a') as tf:
+    #             tf.write(data)
+    #         return True
+    #     except BaseException as e:
+    #         print("Error on_data %s" % str(e))
+    #     return True
+
+    def on_error(self, status):
+        if status == 420:
+            # Returning False on_data method in case rate limit occurs.
+            return False
+        print(status)
+
+    def on_status(self, status):
+        ## Logic of streaming ##
+        if status.truncated == True:
+            twitter_id = status.id_str
+            release_date = status.created_at
+            text = status.extended_tweet['full_text']
+            hash_tags = hashtag_to_list(status.extended_tweet['entities']['hashtags'],
+                                       status.extended_tweet['entities']['user_mentions'])
+            twitter_user = status.user.screen_name
+
+        else:
+            twitter_id = status.id_str
+            release_date = status.created_at
+            text = status.text
+            hash_tags = hashtag_to_list(status.entities['hashtags'], status.entities['user_mentions'])
+            twitter_user = status.user.screen_name
+        if not hasattr(status, "retweeted_status"):
+            twit_instance = Twit(
+                twitter_id=twitter_id,
+                twitter_user=twitter_user,
+                release_date=release_date,
+                text=text,
+                hash_tags=hash_tags
+                )
+            twit_instance.save()
+
+        if (time.time() - self.start_time) > self.limit:
+            print('Limit of time is end: ' + str(self.limit) + ' seconds')
+
+            return False
+
+
+
+
+
+
+
 
 # def index(request):
 #     if request.GET.get("tag_for_searching"):
@@ -140,63 +238,104 @@ def person_actions(request):
             'list_twitter_users': list_twitter_users,
             'list_of_popular': list_of_popular
         })
-
     return render(request, 'twitter/tweets_for_acc.html', {})
 
 
 def update_twits(request):
-
     if request.method == "GET":
-        twitter_accounts = Account.objects.values()
-        twitt_messages = Twit.objects.filter(hash_tags__contains='nypost')
-        return render(request, 'twitter/Searching_page.html', {'twitter_accounts': twitter_accounts, 'twitt_messages': twitt_messages})
+        form = UpdateForm()
+        return render(request, 'twitter/Searching_page.html', {'form': form})
 
     if request.method == "POST":
-        all_names = Account.objects.values('account')
+        ### Set the time limit for updating database ###
+        form = UpdateForm(request.POST)
+        if form.is_valid():
+            time_limit = form.cleaned_data['Number_of_stream']
+            list_of_id = []
+            all_names = Account.objects.values('acc_id')
+            for name in all_names:
+                list_of_id.append(name['acc_id'])
 
-        #update twits in database
-        for name in all_names:
-            account_for_searching = name['account']
-            all_names = Account.objects.get(account=account_for_searching)
+            # Authenticate using config.py and connect to Twitter Streaming API.
+            hash_tag_list = list_of_id
+            fetched_tweets_filename = "tweets.json"
 
-            twitter_client = TwitterClient(account_for_searching)
+            twitter_streamer = TwitterStreamer()
+            twitter_streamer.stream_tweets(fetched_tweets_filename, hash_tag_list, time_limit=time_limit)
+            messages.success(request, 'Data are successfully updated')
+        else:
+            print(form.errors)
 
-            timelines_client = twitter_client.get_user_timeline_tweets(3)
-            account_info = twitter_client.get_user()
-            hash_tag_list = []
-            hashtag_for_user = account_info.status.entities['hashtags']
-            if hashtag_for_user:
-                hash_tag_list.append(hashtag_for_user)
-
-
-            #add last 3 twits(hashtags, mentions, date, account)
-            for timeline in timelines_client:
-                list_of_mentions = timeline.entities['user_mentions']
-
-                for mention in list_of_mentions:
-                    if mention:
-
-                        hash_tag_list.append(mention['screen_name'])
-
-                description = timeline.text
-                date_of_public = timeline.created_at
-                hash_tags = hash_tag_list
-
-
-
-                twit_instance = Twit(
-                    author=all_names,
-                    release_date=date_of_public,
-                    text=description,
-                    hash_tags=hash_tags,
-
-                )
-                twit_instance.save()
-    return render(request, 'twitter/Searching_page.html', {})
-
+        return render(request, 'twitter/Searching_page.html', {'form': form})
 
 def success(request):
     # system_messages = messages.get_messages(request)
     # print(system_messages)
     return render(request, 'twitter/success.html', {})
+
+
+def get_list(request):
+    twitt_messages = []
+
+    if request.method == "GET":
+        filter_words = request.GET['search']
+        if filter_words:
+            if request.GET.get('sort'):
+                twitt_messages = Twit.objects.filter(hash_tags__contains=filter_words).order_by('-release_date')
+            else:
+                twitt_messages = Twit.objects.filter(hash_tags__contains=filter_words)
+            if (twitt_messages.exists() == False) or (filter_words == ''):
+                messages.info(request, 'There is no message for your search')
+        else:
+            messages.info(request, 'Please input searching hash_tag')
+
+    return render(request, 'twitter/Searching_page.html', {'twitt_messages': twitt_messages})
+
+
+# def start_view(request):
+
+    # consumer_key = tweeter_credentials.CONSUMER_KEY
+    # consumer_secret = tweeter_credentials.CONSUMER_SECRET
+    # callback_uri = 'oob'
+    #
+    # # Example using callback (web app)
+    # verifier = request.GET.get('oauth_verifier')
+    # # Let's say this is a web app, so we need to re-build the auth handler
+    # # first...
+    # auth = OAuthHandler(consumer_key, consumer_secret, callback_uri)
+    # try:
+    #     redirect_url = auth.get_authorization_url()
+    # except tweepy.TweepError:
+    #     print('Error! Failed to get request token.')
+    #
+    # print(redirect_url)
+    # request.session.set('request_token', auth.request_token['oauth_token'])
+    # request.session.delete('request_token')
+    #
+    # auth.request_token = {'oauth_token': token,
+    #                       'oauth_token_secret': verifier}
+    #
+    # try:
+    #     auth.get_access_token(verifier)
+    # except TweepError:
+    #     print('Error! Failed to get access token.')
+    # print(auth.access_token, auth.access_token_secret)
+    # return HttpResponse('Hi')
+
+
+## Autorization for web application
+def auth(request):
+    consumer_key = tweeter_credentials.CONSUMER_KEY
+    consumer_secret = tweeter_credentials.CONSUMER_SECRET
+    # start the OAuth process, set up a handler with our details
+    oauth = OAuthHandler(consumer_key, consumer_secret)
+    # direct the user to the authentication url
+    # if user is logged-in and authorized then transparently goto the callback URL
+    auth_url = oauth.get_authorization_url(True)
+    response = HttpResponseRedirect(auth_url)
+    # store the request token
+    request.session['request_token'] = oauth.request_token
+    return response
+
+
 

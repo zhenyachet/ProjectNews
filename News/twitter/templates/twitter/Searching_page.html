@@ -3,21 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 </head>
-<form action="/twitter/update" method="post"> {% csrf_token %}
-    <button type="submit">Update twits in database</button>
-</form>
 <body>
-<h1>Update twits in database</h1>
-{% for account in twitter_accounts %}
-    <ul>
-        <li>{{account.id}}) {{account.account}}</li>
-    </ul>
-{% endfor %}
-<br>
+<div class="container">
+    <div class="row">
+        <div class="col-6">
+            <form action="/twitter/update" method="post" name="form1"> {% csrf_token %}
+                {{form.as_p}}
+                <button type="submit">Update twits in database</button>
+            </form>
+        </div>
+
+        <div class="col-6">
+            <form action="/twitter/get_list" method="get" name="form2">
+                <input type="text" name="search" placeholder="your hash_tag"/>
+                <input type="radio" id="sorting" name="sort" value="desc">
+                <label>Decimal sorting</label>
+                <p>
+                    <input type="submit" value="search"/>
+                </p>
+            </form>
+        </div>
+</div>
+
+
+{% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li>{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+{% endif %}
+
+
 {% for twit in twitt_messages %}
     <ul>
-        <li>{{twit.author_id}}) {{twit.text}} {{twit.hash_tags}}</li>
+        <li>{{twit.release_date}} {{twit.twitter_user}} {{twit.text}}</li>
     </ul>
 {% endfor %}
 
