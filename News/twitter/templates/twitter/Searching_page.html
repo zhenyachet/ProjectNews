@@ -18,11 +18,19 @@
         <div class="col-6">
             <form action="/twitter/get_list" method="get" name="form2">
                 <input type="text" name="search" placeholder="your hash_tag"/>
-                <input type="radio" id="sorting" name="sort" value="desc">
-                <label>Decimal sorting</label>
+                <br>
+                <input type='checkbox' id="sorting" name="sort" value="desc">
+                <label for="sorting">Decimal sorting</label>
+                <br>
+                <input type="number" name="offset" value="offset">
+                <label>offset</label>
+                <br>
+                <input type="number" name="limit" value="limit">
+                <label>limit</label>
                 <p>
                     <input type="submit" value="search"/>
                 </p>
+
             </form>
         </div>
 </div>
@@ -37,7 +45,11 @@
 {% endif %}
 
 
+
 {% for twit in twitt_messages %}
+
+
+
     <ul>
         <li>{{twit.release_date}} {{twit.twitter_user}} {{twit.text}}</li>
     </ul>

@@ -11,7 +11,7 @@ from .forms import UpdateForm, InputPinForm
 from tweepy import StreamListener
 from tweepy import Stream
 import time
-import webbrowser
+from django.core.paginator import Paginator
 
 
 #### Twitter Client ####
@@ -87,7 +87,7 @@ class TwitterStreamer():
         stream.filter(follow=hash_tag_list)
 
 
-## Add list of hashtags and mentions from tweet dictionary
+### Add list of hashtags and mentions from tweet dictionary ###
 def hashtag_to_list(hashtags, mentions):
     list_of_hashtags = []
     for hashtag in hashtags:
@@ -132,16 +132,17 @@ class TwitterListener(StreamListener):
             release_date = status.created_at
             text = status.extended_tweet['full_text']
             hash_tags = hashtag_to_list(status.extended_tweet['entities']['hashtags'],
-                                       status.extended_tweet['entities']['user_mentions'])
+                                        status.extended_tweet['entities']['user_mentions'])
             twitter_user = status.user.screen_name
-
+            lang = status.lang
         else:
             twitter_id = status.id_str
             release_date = status.created_at
             text = status.text
             hash_tags = hashtag_to_list(status.entities['hashtags'], status.entities['user_mentions'])
             twitter_user = status.user.screen_name
-        if not hasattr(status, "retweeted_status"):
+            lang = status.lang
+        if not hasattr(status, "retweeted_status") and lang=="en":
             twit_instance = Twit(
                 twitter_id=twitter_id,
                 twitter_user=twitter_user,
@@ -275,21 +276,31 @@ def success(request):
 
 
 def get_list(request):
+    form = UpdateForm()
     twitt_messages = []
-
+    ### Represent list with different sorting ###
     if request.method == "GET":
+        if request.GET.get('offset'):
+            offset = int(request.GET.get('offset'))
+        else:
+            offset = 0
+        if request.GET.get('limit'):
+            limit = int(request.GET.get('limit'))
+        else:
+            limit = 0
+
         filter_words = request.GET['search']
         if filter_words:
             if request.GET.get('sort'):
-                twitt_messages = Twit.objects.filter(hash_tags__contains=filter_words).order_by('-release_date')
+                twitt_messages = Twit.objects.filter(hash_tags__icontains=filter_words).order_by('-release_date')[offset:limit]
             else:
-                twitt_messages = Twit.objects.filter(hash_tags__contains=filter_words)
+                twitt_messages = Twit.objects.filter(hash_tags__icontains=filter_words)[offset:limit]
             if (twitt_messages.exists() == False) or (filter_words == ''):
                 messages.info(request, 'There is no message for your search')
         else:
-            messages.info(request, 'Please input searching hash_tag')
+            messages.info(request, 'Please input hash_tag for searching')
 
-    return render(request, 'twitter/Searching_page.html', {'twitt_messages': twitt_messages})
+    return render(request, 'twitter/Searching_page.html', {'twitt_messages': twitt_messages, 'form': form})
 
 
 # def start_view(request):
