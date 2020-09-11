@@ -4,7 +4,7 @@ from tweepy import OAuthHandler
 from tweepy import API
 from tweepy import Cursor
 from tweepy import TweepError
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from .models import Account, Twit
 from . import tweeter_credentials
 from .forms import UpdateForm, InputPinForm
@@ -84,7 +84,7 @@ class TwitterStreamer():
         stream = Stream(auth=auth, listener=listener)
 
         # This line filter Twitter Streams to capture data by the keywords:
-        stream.filter(follow=hash_tag_list)
+        stream.filter(follow=hash_tag_list, languages=["en"])
 
 
 ### Add list of hashtags and mentions from tweet dictionary ###
@@ -276,10 +276,11 @@ def success(request):
 
 
 def get_list(request):
-    form = UpdateForm()
+    # form = UpdateForm()
     twitt_messages = []
     ### Represent list with different sorting ###
     if request.method == "GET":
+
         if request.GET.get('offset'):
             offset = int(request.GET.get('offset'))
         else:
@@ -289,18 +290,21 @@ def get_list(request):
         else:
             limit = 0
 
-        filter_words = request.GET['search']
-        if filter_words:
+        if request.GET.get('hash'):
+            filter_words = request.GET['hash']
             if request.GET.get('sort'):
-                twitt_messages = Twit.objects.filter(hash_tags__icontains=filter_words).order_by('-release_date')[offset:limit]
+                twitt_messages = list(Twit.objects.filter(hash_tags__icontains=filter_words).order_by('-release_date')[offset:limit].values())
             else:
-                twitt_messages = Twit.objects.filter(hash_tags__icontains=filter_words)[offset:limit]
-            if (twitt_messages.exists() == False) or (filter_words == ''):
-                messages.info(request, 'There is no message for your search')
+                twitt_messages = list(Twit.objects.filter(hash_tags__icontains=filter_words)[offset:limit].values())
+            # if (twitt_messages.exists() == False) or (filter_words == ''):
+            #     messages.info(request, 'There is no message for your search')
         else:
-            messages.info(request, 'Please input hash_tag for searching')
+            twitt_messages = list(Twit.objects.all().values())
 
-    return render(request, 'twitter/Searching_page.html', {'twitt_messages': twitt_messages, 'form': form})
+
+    return JsonResponse(data=twitt_messages, safe=False)
+    # return render(request, 'twitter/Searching_page.html', {'twitt_messages': twitt_messages, 'form': form})
+
 
 
 # def start_view(request):
